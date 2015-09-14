@@ -14,7 +14,7 @@ def process_maze(file):
         line_num += 1
 
     return maze_array
-
+#testtest
 def text_to_nodes(text, num, arr):
     arr.append([])
     for x in text:
