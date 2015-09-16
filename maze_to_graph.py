@@ -60,7 +60,7 @@ def bfs_maze(maze, p_x, p_y):
             if(maze[x][y]=='%'):
                 pathNodes[x].append('%')
             else:
-                pathNodes[x].append('0')
+                pathNodes[x].append(' ')
     counter=0
     visitedNode=[]
     for x in range(0, height):
@@ -79,7 +79,8 @@ def bfs_maze(maze, p_x, p_y):
             visitedNode[node[0]][node[1]] ='1'
             if maze[node[0]][node[1]] == 'P':
                 pathNodes[node[0]][node[1]] ='P'
-            pathNodes[node[0]][node[1]] ='.'
+            else:
+                pathNodes[node[0]][node[1]] ='.'
             #pathNodes[node[0]][node[1]] =node[2]
             counter=counter+1
             if maze[node[0]][node[1]] == '.':
@@ -122,7 +123,7 @@ def dfs_maze(maze, p_x, p_y):
             if(maze[x][y]=='%'):
                 pathNodes[x].append('%')
             else:
-                pathNodes[x].append('0')
+                pathNodes[x].append(' ')
     counter=0
     visitedNode=[]
     for x in range(0, height):
@@ -141,7 +142,8 @@ def dfs_maze(maze, p_x, p_y):
             visitedNode[node[0]][node[1]] ='1'
             if maze[node[0]][node[1]] == 'P':
                 pathNodes[node[0]][node[1]] ='P'
-            pathNodes[node[0]][node[1]] ='.'
+            else:
+                pathNodes[node[0]][node[1]] ='.'
             #pathNodes[node[0]][node[1]] =node[2]
             counter=counter+1
             if maze[node[0]][node[1]] == '.':
