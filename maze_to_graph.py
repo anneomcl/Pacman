@@ -77,10 +77,13 @@ def bfs_maze(maze, p_x, p_y):
         #print(node)
         if visitedNode[node[0]][node[1]] == '0':
             visitedNode[node[0]][node[1]] ='1'
-            pathNodes[node[0]][node[1]] =node[2]
+            if maze[node[0]][node[1]] == 'P':
+                pathNodes[node[0]][node[1]] ='P'
+            pathNodes[node[0]][node[1]] ='.'
+            #pathNodes[node[0]][node[1]] =node[2]
             counter=counter+1
             if maze[node[0]][node[1]] == '.':
-                pathNodes[node[0]][node[1]] ='@'
+                pathNodes[node[0]][node[1]] ='.'
                 print_maze_array(pathNodes)
                 return (True, node[0], node[1])
 
@@ -136,10 +139,13 @@ def dfs_maze(maze, p_x, p_y):
         #print(node)
         if visitedNode[node[0]][node[1]] == '0':
             visitedNode[node[0]][node[1]] ='1'
-            pathNodes[node[0]][node[1]] =node[2]
+            if maze[node[0]][node[1]] == 'P':
+                pathNodes[node[0]][node[1]] ='P'
+            pathNodes[node[0]][node[1]] ='.'
+            #pathNodes[node[0]][node[1]] =node[2]
             counter=counter+1
             if maze[node[0]][node[1]] == '.':
-                pathNodes[node[0]][node[1]] ='@'
+                pathNodes[node[0]][node[1]] ='.'
                 print_maze_array(pathNodes)
                 return (True, node[0], node[1])
 
