@@ -1,6 +1,10 @@
 import collections
 from collections import deque
 from heapq import heappush, heappop
+import matplotlib.pyplot as plt
+import numpy as np
+from math import sqrt
+
 
 maze_height = 0
 maze_width = 0
@@ -70,6 +74,28 @@ def adjacentNodes(maze, node):
         retList.append((node[0],node[1]+1, '>'))
     return retList
 
+def adjacentNodes2(maze, node):
+    retList=[]
+
+    if maze[node[0]+1][node[1]] != '%': #down
+        retList.append((node[0]+1,node[1], '!'))
+    if maze[node[0]-1][node[1]] != '%': #up
+        retList.append((node[0]-1,node[1], '^'))
+    if maze[node[0]][node[1]-1] != '%': #left
+        retList.append((node[0],node[1]-1, '<'))
+    if maze[node[0]][node[1]+1] != '%': #right
+        retList.append((node[0],node[1]+1, '>'))
+
+    if maze[node[0]-1][node[1]-1] != '%': #upLeft
+        retList.append((node[0]-1,node[1]-1, 'UL'))
+    if maze[node[0]-1][node[1]+1] != '%': #upRight
+        retList.append((node[0]-1,node[1]+1, 'UR'))
+    if maze[node[0]+1][node[1]-1] != '%': #downLeft
+        retList.append((node[0]+1,node[1]-1, 'DL'))
+    if maze[node[0]+1][node[1]+1] != '%': #downRight
+        retList.append((node[0]+1,node[1]+1, 'DR'))
+    return retList
+
 def bfs_maze(maze, p_x, p_y):
     nodes_expanded = 0
     path_cost = 1
@@ -90,6 +116,7 @@ def bfs_maze(maze, p_x, p_y):
 
     while(len(queue) > 0):
         node = queue.pop()
+
         if visitedNode[node[0]][node[1]] == '0':
             visitedNode[node[0]][node[1]] ='1'
             nodes_expanded += 1
@@ -131,6 +158,8 @@ def dfs_maze(maze, p_x, p_y):
     stack = [t]
 
     while(len(stack) > 0):
+
+
         node = stack.pop()
         if visitedNode[node[0]][node[1]] == '0':
             visitedNode[node[0]][node[1]] ='1'
@@ -236,10 +265,16 @@ def heuristic_cost_estimate(p_y, p_x, g_y, g_x, method):
     if(method == "MANHATTAN"):
         distance = abs(p_y - g_y) + abs(p_x - g_x)
         return distance
+    elif(method == "CHICAGO"):
+        dx = abs(p_x - g_x)
+        dy = abs(p_y - g_y)
+        diagonalCost=sqrt(2)
+        return abs(p_y - g_y) + abs(p_x - g_x)
+            #((dx + dy) + (diagonalCost - 2) * min(dx, dy))
     else:
         return -1
 
-def a_star(maze, p_x, p_y, g_x, g_y):
+def a_star(maze, p_x, p_y, g_x, g_y, h):
 
     nodes_expanded = 0
     path_cost = 1
@@ -290,7 +325,7 @@ def a_star(maze, p_x, p_y, g_x, g_y):
                 new_cost = cost_so_far[node] + 1
                 if (n not in cost_so_far or new_cost < cost_so_far[n]) and visitedNode[n[0]][n[1]] == '0':
                     cost_so_far[n] = new_cost
-                    priority = new_cost + heuristic_cost_estimate(p_y, p_x, g_y, g_x, "MANHATTAN")
+                    priority = new_cost + heuristic_cost_estimate(p_y, p_x, g_y, g_x, h)
                     heappush(queue, (priority, (n[0], n[1], n[2])))
                     came_from[n] = node
 
@@ -310,7 +345,86 @@ def a_star(maze, p_x, p_y, g_x, g_y):
     print("A*")
     return (found, nodes_expanded, path_cost)
 
-def solve(file, method):
+
+
+
+def a_star_diagonal(maze, p_x, p_y, g_x, g_y, h):
+
+    nodes_expanded = 0
+    path_cost = 1
+
+    came_from = {}
+    cost_so_far = {}
+
+    path_nodes = []
+    maze_to_array(path_nodes, maze)
+
+    goal = ()
+
+    #closed set
+    visitedNode=[]
+    for x in range(0, maze_height):
+        visitedNode.append([])
+        for y in range(0, maze_width):
+            visitedNode[x].append('0')
+
+    #frontier
+    #node: y, x, symbol, f score, g score
+    t = (0, (p_y, p_x,'$'))
+    queue = []
+    heappush(queue, t)
+
+    found = False
+
+    came_from[t[1]] = None
+    cost_so_far[t[1]] = 0
+
+    while(len(queue) > 0):
+        node = heappop(queue)[1]
+
+        if maze[node[0]][node[1]] == '.' and visitedNode[node[0]][node[1]] == '0':
+                path_cost += 1
+                path_nodes[node[0]][node[1]] = "."
+                path_nodes[p_y][p_x] = "P"
+                goal = node
+                found = True
+                break
+
+        if visitedNode[node[0]][node[1]] == '0':
+            visitedNode[node[0]][node[1]] = '1'
+
+            nodes_expanded += 1
+
+            for n in adjacentNodes2(maze, node):
+                if(n[2]=='UR' or n[2]=='UL' or n[2]=='DR' or n[2]=='DL'):
+                    new_cost = cost_so_far[node] + sqrt(2)
+                else:
+                    new_cost = cost_so_far[node] + 1
+                if (n not in cost_so_far or new_cost < cost_so_far[n]) and visitedNode[n[0]][n[1]] == '0':
+                    cost_so_far[n] = new_cost
+                    priority = new_cost + heuristic_cost_estimate(p_y, p_x, g_y, g_x, h)
+                    heappush(queue, (priority, (n[0], n[1], n[2])))
+                    came_from[n] = node
+
+    curr = came_from[goal]
+    del came_from[goal]
+    while(len(came_from) > 0):
+        if(curr[2] != '$'):
+            path_cost += 1
+            path_nodes[curr[0]][curr[1]] = '.'
+            temp = curr
+            curr = came_from[temp]
+            del came_from[temp]
+        else:
+            break
+
+    print_maze_array(path_nodes)
+    print("A*")
+    return (found, nodes_expanded, path_cost)
+
+
+
+def solve(file, method, h):
     m = process_maze("Maze/"+file)
     p = find_pacman(m)
     g = find_goal(m)
@@ -325,21 +439,27 @@ def solve(file, method):
         print(greedy_bfs_maze(m, p.w, p.h, g.w, g.h))
         return True
     elif(method == "A*"):
-        print(a_star(m, p.w, p.h, g.w, g.h))
+        print(a_star(m, p.w, p.h, g.w, g.h, h))
+        return True
+    elif(method == "A*_Diagonal"):
+        print(a_star_diagonal(m, p.w, p.h, g.w, g.h, h))
         return True
     else:
         return False
 
 #Run program
-solve("bigMaze.txt", "BFS")
-solve("bigMaze.txt", "DFS")
-solve("bigMaze.txt", "GREEDY")
-solve("bigMaze.txt", "A*")
-solve("mediumMaze.txt", "BFS")
-solve("mediumMaze.txt", "DFS")
-solve("mediumMaze.txt", "GREEDY")
-solve("mediumMaze.txt", "A*")
-solve("openMaze.txt", "BFS")
-solve("openMaze.txt", "DFS")
-solve("openMaze.txt", "GREEDY")
-solve("openMaze.txt", "A*")
+#solve("bigMaze.txt", "BFS")
+#solve("bigMaze.txt", "DFS")
+#solve("bigMaze.txt", "GREEDY")
+#solve("bigMaze.txt", "A*")
+#solve("mediumMaze.txt", "BFS")
+#solve("mediumMaze.txt", "DFS")
+#solve("mediumMaze.txt", "GREEDY")
+#solve("mediumMaze.txt", "A*")
+#solve("openMaze.txt", "BFS")
+#solve("openMaze.txt", "DFS")
+#solve("openMaze.txt", "GREEDY")
+solve("openMaze.txt", "A*", "MANHATTAN")
+solve("openMaze.txt", "A*_Diagonal", "CHICAGO")
+#solve("bigMaze.txt", "A*", "MANHATTAN")
+#solve("bigMaze.txt", "A*", "CHICAGO")
