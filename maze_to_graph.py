@@ -389,18 +389,17 @@ def a_star_ghost(maze, p_x, p_y, g_x, g_y, forward_cost, turn_cost, h, ghost_x, 
 
     came_from[t[1]] = None
     cost_so_far[t[1]] = 0
-    ghost_x=ghost_x-2
+
     dir='right'
     while(len(queue) > 0):
         node = heappop(queue)[1]
 
         if(dir=='right'):
             if(ghost_maze[ghost_y][ghost_x+1] == '%'):
-                    #ghost_x=ghost_x -1
+                    ghost_x=ghost_x -1
                     dir='left'
             elif(ghost_maze[ghost_y][ghost_x+1] == ' ' or ghost_maze[ghost_y][ghost_x-1] == 'g'):
                    ghost_x=ghost_x +1
-
         elif(dir=='left'):
             if(ghost_maze[ghost_y][ghost_x-1] == '%'):
                     ghost_x=ghost_x +1
