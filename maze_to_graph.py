@@ -1,6 +1,7 @@
 import collections
 from collections import deque
 from heapq import heappush, heappop
+from math import sqrt
 
 maze_height = 0
 maze_width = 0
@@ -70,49 +71,27 @@ def adjacentNodes(maze, node):
         retList.append((node[0],node[1]+1, '>'))
     return retList
 
-def findMin(maze, frontier, heuristic, g_x, g_y):
+def adjacentNodes2(maze, node):
+    retList=[]
 
-    if(heuristic == "MANHATTAN"):
-        min = 100000000
-        best_node = (-1, -1, '')
-        best_node_index = -1
-        i = 0
+    if maze[node[0]+1][node[1]] != '%': #down
+        retList.append((node[0]+1,node[1], '!'))
+    if maze[node[0]-1][node[1]] != '%': #up
+        retList.append((node[0]-1,node[1], '^'))
+    if maze[node[0]][node[1]-1] != '%': #left
+        retList.append((node[0],node[1]-1, '<'))
+    if maze[node[0]][node[1]+1] != '%': #right
+        retList.append((node[0],node[1]+1, '>'))
 
-        for node in frontier:
-            distance = abs(node[0] - g_y) + abs(node[1] - g_x)
-            if(distance < min):
-                min = distance
-                best_node = (node[0], node[1], node[2])
-                best_node_index = i
-            i += 1
-
-    del frontier[best_node_index]
-
-    return best_node
-
-def find_goal(arr):
-    goal = collections.namedtuple('Goal', ['h', 'w'])
-    for x in range(0, maze_height):
-        for y in range(0, maze_width):
-            if(arr[x][y] == "."):
-                g = goal(x, y)
-                return g
-    g = goal(-1, -1)
-    return g
-
-def heuristic_cost_estimate(a, b, method, turn_cost, forward_cost):
-
-    if(method == "MANHATTAN"):
-        distance = abs(a[0] - b[0]) + abs(a[1] - b[1])
-        return distance
-    elif(method == "TURNING_PENALTY"):
-        distance = 0
-
-        #needs better heuristic
-
-        return distance
-    else:
-        return -1
+    if maze[node[0]-1][node[1]-1] != '%': #upLeft
+        retList.append((node[0]-1,node[1]-1, 'UL'))
+    if maze[node[0]-1][node[1]+1] != '%': #upRight
+        retList.append((node[0]-1,node[1]+1, 'UR'))
+    if maze[node[0]+1][node[1]-1] != '%': #downLeft
+        retList.append((node[0]+1,node[1]-1, 'DL'))
+    if maze[node[0]+1][node[1]+1] != '%': #downRight
+        retList.append((node[0]+1,node[1]+1, 'DR'))
+    return retList
 
 def bfs_maze(maze, p_x, p_y):
     nodes_expanded = 0
@@ -175,6 +154,7 @@ def dfs_maze(maze, p_x, p_y):
     stack = [t]
 
     while(len(stack) > 0):
+
         node = stack.pop()
         if visitedNode[node[0]][node[1]] == '0':
             visitedNode[node[0]][node[1]] ='1'
@@ -245,7 +225,50 @@ def greedy_bfs_maze(maze, p_x, p_y, g_x, g_y):
     print_maze_array(path_nodes)
     return (False, nodes_expanded, path_cost)
 
-def a_star(maze, p_x, p_y, g_x, g_y, forward_cost, turn_cost, h):
+def findMin(maze, frontier, heuristic, g_x, g_y):
+
+    if(heuristic == "MANHATTAN"):
+        min = 100000000
+        best_node = (-1, -1, '')
+        best_node_index = -1
+        i = 0
+
+        for node in frontier:
+            distance = abs(node[0] - g_y) + abs(node[1] - g_x)
+            if(distance < min):
+                min = distance
+                best_node = (node[0], node[1], node[2])
+                best_node_index = i
+            i += 1
+
+    del frontier[best_node_index]
+
+    return best_node
+
+def find_goal(arr):
+    goal = collections.namedtuple('Goal', ['h', 'w'])
+    for x in range(0, maze_height):
+        for y in range(0, maze_width):
+            if(arr[x][y] == "."):
+                g = goal(x, y)
+                return g
+    g = goal(-1, -1)
+    return g
+
+def heuristic_cost_estimate(p_y, p_x, g_y, g_x, method):
+
+    if(method == "MANHATTAN"):
+        distance = abs(p_y - g_y) + abs(p_x - g_x)
+        return distance
+    elif(method == "CHICAGO"):
+        dx = abs(p_x - g_x)
+        dy = abs(p_y - g_y)
+        diagonalCost = sqrt(2)
+        return ((dx + dy) + (diagonalCost - 2) * min(dx, dy))
+    else:
+        return -1
+
+def a_star(maze, p_x, p_y, g_x, g_y):
 
     nodes_expanded = 0
     path_cost = 0
@@ -343,6 +366,80 @@ def adjacentNodesAStar(maze, node):
         retList.append((node[0],node[1]+1, '>', "RIGHT"))
     return retList
 
+def a_star_diagonal(maze, p_x, p_y, g_x, g_y, h):
+
+    nodes_expanded = 0
+    path_cost = 1
+
+    came_from = {}
+    cost_so_far = {}
+
+    path_nodes = []
+    maze_to_array(path_nodes, maze)
+
+    goal = ()
+
+    #closed set
+    visitedNode=[]
+    for x in range(0, maze_height):
+        visitedNode.append([])
+        for y in range(0, maze_width):
+            visitedNode[x].append('0')
+
+    #frontier
+    #node: y, x, symbol, f score, g score
+    t = (0, (p_y, p_x,'$'))
+    queue = []
+    heappush(queue, t)
+
+    found = False
+
+    came_from[t[1]] = None
+    cost_so_far[t[1]] = 0
+
+    while(len(queue) > 0):
+        node = heappop(queue)[1]
+
+        if maze[node[0]][node[1]] == '.' and visitedNode[node[0]][node[1]] == '0':
+                path_cost += 1
+                path_nodes[node[0]][node[1]] = "."
+                path_nodes[p_y][p_x] = "P"
+                goal = node
+                found = True
+                break
+
+        if visitedNode[node[0]][node[1]] == '0':
+            visitedNode[node[0]][node[1]] = '1'
+
+            nodes_expanded += 1
+
+            for n in adjacentNodes2(maze, node):
+                if(n[2]=='UR' or n[2]=='UL' or n[2]=='DR' or n[2]=='DL'):
+                    new_cost = cost_so_far[node] + sqrt(2)
+                else:
+                    new_cost = cost_so_far[node] + 1
+                if (n not in cost_so_far or new_cost < cost_so_far[n]) and visitedNode[n[0]][n[1]] == '0':
+                    cost_so_far[n] = new_cost
+                    priority = new_cost + heuristic_cost_estimate(p_y, p_x, g_y, g_x, h)
+                    heappush(queue, (priority, (n[0], n[1], n[2])))
+                    came_from[n] = node
+
+    curr = came_from[goal]
+    del came_from[goal]
+    while(len(came_from) > 0):
+        if(curr[2] != '$'):
+            path_cost += 1
+            path_nodes[curr[0]][curr[1]] = '.'
+            temp = curr
+            curr = came_from[temp]
+            del came_from[temp]
+        else:
+            break
+
+    print_maze_array(path_nodes)
+    print("A*")
+    return (found, nodes_expanded, path_cost)
+
 def solve(file, method, forward_cost, turn_cost, h):
     m = process_maze("Maze/"+file)
     p = find_pacman(m)
@@ -359,6 +456,9 @@ def solve(file, method, forward_cost, turn_cost, h):
         return True
     elif(method == "A*"):
         print(a_star(m, p.w, p.h, g.w, g.h, forward_cost, turn_cost, h))
+        return True
+    elif(method == "A*_Diagonal"):
+        print(a_star_diagonal(m, p.w, p.h, g.w, g.h, h))
         return True
     else:
         return False
@@ -379,3 +479,5 @@ def solve(file, method, forward_cost, turn_cost, h):
 solve("bigMaze.txt", "A*", 1, 1, "MANHATTAN")
 solve("bigMaze.txt", "A*", 1, 2, "MANHATTAN")
 solve("bigMaze.txt", "A*", 2, 1, "MANHATTAN")
+solve("openMaze.txt", "A*", "MANHATTAN")
+solve("openMaze.txt", "A*_Diagonal", "CHICAGO")
