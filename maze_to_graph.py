@@ -41,6 +41,17 @@ def find_pacman(arr):
     p = pacman(-1, -1)
     return p
 
+def find_ghost(arr):
+    ghost_pacman = collections.namedtuple('Ghost', ['h', 'w'])
+    for x in range(0, maze_height):
+        for y in range(0, maze_width):
+            if(arr[x][y] == "G"):
+                g = ghost_pacman(x, y)
+                return g
+    g = ghost_pacman(-1, -1)
+    return g
+
+
 def print_maze_array(arr):
     temp=''
     for i in arr:
@@ -57,6 +68,16 @@ def maze_to_array(path_nodes, maze):
                 path_nodes[x].append('%')
             else:
                 path_nodes[x].append(' ')
+
+
+
+def maze_copy(path_nodes, maze):
+    for x in range(0, maze_height):
+        path_nodes.append([])
+        for y in range(0, maze_width):
+            path_nodes[x].append(maze[x][y])
+
+
 
 def adjacentNodes(maze, node):
     retList=[]
@@ -261,7 +282,7 @@ def heuristic_cost_estimate(p_y, p_x, g_y, g_x, method):
         distance = abs(p_y - g_y) + abs(p_x - g_x)
         return distance
     elif(method == "CHICAGO"):
-        dx = abs(p_x - g_x)
+        dx = 2*abs(p_x - g_x)
         dy = abs(p_y - g_y)
         diagonalCost = sqrt(2)
         return ((dx + dy) + (diagonalCost - 2) * min(dx, dy))
@@ -337,6 +358,101 @@ def a_star(maze, p_x, p_y, g_x, g_y, forward_cost, turn_cost, h):
     print_maze_array(path_nodes)
     print("A*")
     return (found, nodes_expanded, path_cost)
+
+
+
+def a_star_ghost(maze, p_x, p_y, g_x, g_y, forward_cost, turn_cost, h, ghost_x, ghost_y):
+
+    nodes_expanded = 0
+    path_cost = 0
+    found = False
+
+    came_from = {}
+    cost_so_far = {}
+
+    path_nodes = []
+    maze_to_array(path_nodes, maze)
+
+    ghost_maze=[]
+    maze_copy(ghost_maze, maze)
+    goal = ()
+
+    visitedNode=[]
+    for x in range(0, maze_height):
+        visitedNode.append([])
+        for y in range(0, maze_width):
+            visitedNode[x].append('0')
+
+    t = (0, (p_y, p_x,'$', "RIGHT"))
+    queue = []
+    heappush(queue, t)
+
+    came_from[t[1]] = None
+    cost_so_far[t[1]] = 0
+    ghost_x=ghost_x-2
+    dir='right'
+    while(len(queue) > 0):
+        node = heappop(queue)[1]
+
+        if(dir=='right'):
+            if(ghost_maze[ghost_y][ghost_x+1] == '%'):
+                    #ghost_x=ghost_x -1
+                    dir='left'
+            elif(ghost_maze[ghost_y][ghost_x+1] == ' ' or ghost_maze[ghost_y][ghost_x-1] == 'g'):
+                   ghost_x=ghost_x +1
+
+        elif(dir=='left'):
+            if(ghost_maze[ghost_y][ghost_x-1] == '%'):
+                    ghost_x=ghost_x +1
+                    dir='right'
+            elif(ghost_maze[ghost_y][ghost_x-1] == ' ' or ghost_maze[ghost_y][ghost_x-1] == 'g'):
+                    ghost_x=ghost_x -1
+
+
+        if(node[0]==ghost_y and node[1]==ghost_x):
+            node = heappop(queue)[1]
+
+        path_nodes[ghost_y][ghost_x] = "g"
+        if ghost_maze[node[0]][node[1]] == '.' and visitedNode[node[0]][node[1]] == '0':
+                path_cost += checkCostOfTurning(node[3], came_from[node][3], turn_cost, forward_cost)
+                path_nodes[node[0]][node[1]] = "."
+                path_nodes[p_y][p_x] = "P"
+                goal = node
+                found = True
+                break
+
+        if visitedNode[node[0]][node[1]] == '0':
+            visitedNode[node[0]][node[1]] = '1'
+
+            nodes_expanded += 1
+
+            for n in adjacentNodesAStar(ghost_maze, node):
+
+                new_cost = cost_so_far[node]
+                new_cost += checkCostOfTurning(n[3], node[3], turn_cost, forward_cost)
+
+                if (n not in cost_so_far or new_cost < cost_so_far[n]) and visitedNode[n[0]][n[1]] == '0':
+                    cost_so_far[n] = new_cost
+                    priority = new_cost + heuristic_cost_estimate(n[0], n[1], g_y, g_x, h)
+                    heappush(queue, (priority, (n[0], n[1], n[2], n[3])))
+                    came_from[n] = node
+
+    curr = came_from[goal]
+    del came_from[goal]
+    while(len(came_from) > 0):
+        if(curr[2] != '$'):
+            path_cost += checkCostOfTurning(curr[3], came_from[curr][3], turn_cost, forward_cost)
+            path_nodes[curr[0]][curr[1]] = '.'
+            temp = curr
+            curr = came_from[temp]
+            del came_from[temp]
+        else:
+            break
+
+    print_maze_array(path_nodes)
+    print("A*")
+    return (found, nodes_expanded, path_cost)
+
 
 def checkCostOfTurning(a, b, turn_cost, forward_cost):
 
@@ -444,6 +560,7 @@ def solve(file, method, forward_cost, turn_cost, h):
     m = process_maze("Maze/"+file)
     p = find_pacman(m)
     g = find_goal(m)
+    ghost_pacman = find_ghost(m)
 
     if(method == "BFS"):
         print(bfs_maze(m, p.w, p.h))
@@ -456,6 +573,9 @@ def solve(file, method, forward_cost, turn_cost, h):
         return True
     elif(method == "A*"):
         print(a_star(m, p.w, p.h, g.w, g.h, forward_cost, turn_cost, h))
+        return True
+    elif(method == "A*_ghost"):
+        print(a_star_ghost(m, p.w, p.h, g.w, g.h, forward_cost, turn_cost, h, ghost_pacman.w, ghost_pacman.h))
         return True
     elif(method == "A*_Diagonal"):
         print(a_star_diagonal(m, p.w, p.h, g.w, g.h, h))
@@ -476,8 +596,10 @@ def solve(file, method, forward_cost, turn_cost, h):
 #solve("openMaze.txt", "DFS")
 #solve("openMaze.txt", "GREEDY")
 #solve("openMaze.txt", "A*")
-solve("bigMaze.txt", "A*", 1, 1, "MANHATTAN")
-solve("bigMaze.txt", "A*", 1, 2, "MANHATTAN")
+# solve("bigMaze.txt", "A*", 1, 1, "MANHATTAN")
+# solve("bigMaze.txt", "A*", 1, 2, "MANHATTAN")
 solve("bigMaze.txt", "A*", 2, 1, "MANHATTAN")
 solve("openMaze.txt", "A*", 1, 1, "MANHATTAN")
-solve("openMaze.txt", "A*_Diagonal", 1, 1, "CHICAGO")
+solve("bigGhost.txt", "A*_ghost", 1, 1, "MANHATTAN")
+solve("bigGhostNoGhost.txt", "A*_ghost", 1, 1, "MANHATTAN")
+# solve("openMaze.txt", "A*_Diagonal", 1, 1, "CHICAGO")
