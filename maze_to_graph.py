@@ -268,7 +268,7 @@ def heuristic_cost_estimate(p_y, p_x, g_y, g_x, method):
     else:
         return -1
 
-def a_star(maze, p_x, p_y, g_x, g_y):
+def a_star(maze, p_x, p_y, g_x, g_y, forward_cost, turn_cost, h):
 
     nodes_expanded = 0
     path_cost = 0
@@ -369,7 +369,7 @@ def adjacentNodesAStar(maze, node):
 def a_star_diagonal(maze, p_x, p_y, g_x, g_y, h):
 
     nodes_expanded = 0
-    path_cost = 1
+    path_cost = 0
 
     came_from = {}
     cost_so_far = {}
@@ -479,5 +479,5 @@ def solve(file, method, forward_cost, turn_cost, h):
 solve("bigMaze.txt", "A*", 1, 1, "MANHATTAN")
 solve("bigMaze.txt", "A*", 1, 2, "MANHATTAN")
 solve("bigMaze.txt", "A*", 2, 1, "MANHATTAN")
-solve("openMaze.txt", "A*", "MANHATTAN")
-solve("openMaze.txt", "A*_Diagonal", "CHICAGO")
+solve("openMaze.txt", "A*", 1, 1, "MANHATTAN")
+solve("openMaze.txt", "A*_Diagonal", 1, 1, "CHICAGO")
